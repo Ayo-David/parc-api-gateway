@@ -1,0 +1,21 @@
+{
+  "name": "@parc/api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@1.22.19",
+  "engines": {
+    "node": "22.21.1"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "node scripts/validate-config.mjs",
+    "test": "node --test",
+    "validate": "yarn format:check && yarn lint && yarn test"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2",
+    "yaml": "2.8.3"
+  }
+}

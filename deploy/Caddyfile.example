@@ -1,0 +1,5 @@
+# /etc/caddy/Caddyfile on the VPS. Caddy obtains and renews the TLS certificate,
+# then forwards to Kong on loopback. Replace the hostname with the public API domain.
+api.example.com {
+	reverse_proxy 127.0.0.1:8090
+}

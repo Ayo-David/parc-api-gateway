@@ -1,0 +1,79 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: parc-mobile-bff
+    url: http://parc-mobile-bff:3010
+    connect_timeout: 3000
+    read_timeout: 10000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: mobile-bff-v1
+        paths: [/mobile]
+        strip_path: true
+        preserve_host: false
+        protocols: [http, https]
+
+  - name: parc-admin-bff
+    url: http://parc-admin-bff:3020
+    connect_timeout: 3000
+    read_timeout: 10000
+    write_timeout: 10000
+    retries: 1
+    routes:
+      - name: admin-bff-v1
+        paths: [/admin]
+        strip_path: true
+        preserve_host: false
+        protocols: [http, https]
+
+plugins:
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-ID
+      generator: uuid
+      echo_downstream: true
+
+  - name: request-transformer
+    config:
+      remove:
+        headers:
+          - X-Consumer-ID
+          - X-Consumer-Custom-ID
+          - X-Consumer-Username
+          - X-Credential-Identifier
+          - X-Anonymous-Consumer
+          - X-Authenticated-UserId
+          - X-Authenticated-Scope
+          - X-Resolved-Tenant-Id
+          - X-Resolved-Subject-Id
+
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 2
+      size_unit: megabytes
+      require_content_length: false
+
+  - name: rate-limiting
+    config:
+      minute: 600
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - X-Content-Type-Options:nosniff
+          - X-Frame-Options:DENY
+          - Referrer-Policy:no-referrer
+          - Cache-Control:no-store
+
+  - name: prometheus
+    config:
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true

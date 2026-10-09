@@ -1,0 +1,71 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit to roll back to (e.g. abc1234). Leave blank to restore the configuration that ran before the last deploy."
+        required: false
+        type: string
+
+env:
+  CONTAINER_NAME: parc-api-gateway
+  KONG_IMAGE: kong:3.9.3
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-parc-api-gateway
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check requested ref
+        env:
+          REQUESTED_REF: ${{ inputs.ref }}
+        run: |
+          if [ -n "$REQUESTED_REF" ] && [[ ! "$REQUESTED_REF" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "Invalid ref; expected a commit SHA of 7 to 40 lowercase hex characters." >&2
+            exit 1
+          fi
+
+      # The apply script always comes from the current branch; only the Kong configuration rolls back.
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        if: inputs.ref != ''
+        with:
+          ref: ${{ inputs.ref }}
+          path: target
+
+      - name: Package configuration
+        env:
+          REQUESTED_REF: ${{ inputs.ref }}
+        run: |
+          {
+            echo "APPLY_SCRIPT_BASE64=$(base64 -w0 deploy/apply-config.sh)"
+            if [ -n "$REQUESTED_REF" ]; then
+              echo "USE_PREVIOUS=false"
+              echo "REVISION=$(git -C target rev-parse --short=7 HEAD)"
+              echo "KONG_CONFIG_BASE64=$(base64 -w0 target/kong/kong.yml)"
+            else
+              echo "USE_PREVIOUS=true"
+              echo "REVISION="
+              echo "KONG_CONFIG_BASE64="
+            fi
+          } >> "$GITHUB_ENV"
+
+      - name: Roll back VPS gateway
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: CONTAINER_NAME,KONG_IMAGE,USE_PREVIOUS,REVISION,KONG_CONFIG_BASE64,APPLY_SCRIPT_BASE64
+          script: |
+            set -euo pipefail
+            printf '%s' "$APPLY_SCRIPT_BASE64" | base64 -d > /tmp/parc-api-gateway-apply.sh
+            bash /tmp/parc-api-gateway-apply.sh
