@@ -115,7 +115,7 @@ test("production resolves every BFF hostname to loopback", async () => {
 
 test("local and deployed gateways pin the same Kong image", async () => {
   const compose = parse(await readText("../compose.yaml"));
-  for (const workflow of ["deploy.yml", "rollback.yml", "ci.yml"]) {
+  for (const workflow of ["ci-cd.yml", "rollback.yml"]) {
     const text = await readText(`../.github/workflows/${workflow}`);
     assert.ok(
       text.includes(compose.services.kong.image),
