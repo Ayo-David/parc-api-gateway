@@ -54,8 +54,7 @@ Every Parc container runs with `--network host`. Kong reaches the BFFs through t
 
 ### Deploy and rollback
 
-- `CI` validates every pull request and push.
-- `Deploy` runs after `CI` succeeds on `main` (or manually). It sends `kong/kong.yml` and `deploy/apply-config.sh` over SSH. The script parses the configuration with Kong, keeps the running one as the rollback target, replaces the container, waits for `/status`, and restores the last known-good configuration if Kong does not come up. It warns, without failing, when a BFF is unreachable through Kong.
+- `CI/CD` validates every pull request and every push to `main`. On `main` (or when run manually) its `deploy` job runs once validation passes and sends `kong/kong.yml` and `deploy/apply-config.sh` over SSH. The script parses the configuration with Kong, keeps the running one as the rollback target, replaces the container, waits for `/status`, and restores the last known-good configuration if Kong does not come up. It warns, without failing, when a BFF is unreachable through Kong.
 - `Rollback` re-applies the previous configuration, or the configuration at a given commit.
 
 Kong holds no secrets, so there is no server `.env`. State lives in `/opt/parc/parc-api-gateway/`: `config/kong.yml`, `kong.previous.yml`, and `current_revision.txt` / `previous_revision.txt`.
