@@ -19,6 +19,8 @@ concurrency:
 env:
   CONTAINER_NAME: parc-api-gateway
   KONG_IMAGE: kong:3.9.3
+  # Same official image, pulled from the ECR Public mirror: Docker Hub rate-limits anonymous pulls from shared runner IPs.
+  KONG_VALIDATE_IMAGE: public.ecr.aws/docker/library/kong:3.9.3
 
 jobs:
   validate:
@@ -33,7 +35,7 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: yarn validate
       - name: Validate with Kong
-        run: docker run --rm -e KONG_DATABASE=off -v "$PWD/kong:/kong/declarative:ro" kong:3.9.3 kong config parse /kong/declarative/kong.yml
+        run: docker run --rm -e KONG_DATABASE=off -v "$PWD/kong:/kong/declarative:ro" "$KONG_VALIDATE_IMAGE" kong config parse /kong/declarative/kong.yml
       - run: docker compose -f compose.yaml config
       - run: yarn audit
 
